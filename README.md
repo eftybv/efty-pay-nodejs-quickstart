@@ -8,17 +8,16 @@ This is a quickstart project for integrating with the Efty Pay Node.js SDK. It d
 - [Required Setup](#required-setup)
    - [Initial Setup & Token Creation](#initial-setup--token-creation)
    - [Token Creation](#token-creation)
-   - [Set Your API Credentials in Environment Variables](#set-your-api-credentials-in-environment-variables)
+   - [Set Your API Credentials in Environment Variables](#set-your-api-credentials-in-your-environment-variables)
    - [Important Notes](#important-notes)
 - [Create & Onboard the Seller](#create--onboard-the-seller)
    - [Onboard a Seller](#onboard-a-seller)
-   - [Full Examples](#full-examples)
-- [Examples](#examples)
+- [Other examples](#other-examples)
    - [Generate Magic Link](#generate-magic-link)
    - [Create Transaction (with Known Seller & Buyer)](#create-transaction-with-known-seller--buyer)
    - [Get a user](#get-a-user)
    - [List transactions](#list-transactions)
-- [Troubleshooting](#troubleshooting-support)
+- [Troubleshooting & support](#troubleshooting--support)
 - [License](#license)
 
 ## Requirements
@@ -572,7 +571,7 @@ Full examples:
 - List transactions for seller: [examples/list-transactions-for-seller.js](./examples/list-transactions-for-seller.js).
 - List transactions for buyer: [examples/list-transactions-for-buyer.js](./examples/list-transactions-for-buyer.js).
 
-## Troubleshooting & Support
+## Troubleshooting & support
 If you run into any other issues, contact us at [api@efty.com](api@efty.com).
 
 ## License
