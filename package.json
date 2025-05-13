@@ -1,0 +1,14 @@
+{
+  "name": "efty-pay-nodejs-quickstart",
+  "version": "1.0.0",
+  "description": "Quickstart examples for the Efty Pay Node.js SDK using gRPC and JWT auth",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.12",
+    "dotenv": "^16.3.1",
+    "efty-pay-nodejs-sdk": "git+https://github.com/eftybv/efty-pay-nodejs-sdk.git",
+    "google-protobuf": "^3.21.4",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "author": "Efty B.V.",
+  "license": "MIT"
+}
