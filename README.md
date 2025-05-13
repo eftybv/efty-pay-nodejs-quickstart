@@ -54,7 +54,7 @@ In order to authenticate with Efty Pay, a JWT token needs to be passed into the 
 The code relies on the [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) package to do the JWT token generation in Node.js. Please make sure to include this library into your `package.json` if you want to use the [examples/helpers.js](examples/helpers.js) code:
 ```
 "dependencies": {
-   "efty-pay-nodejs-sdk": "git+https://github.com/eftybv/efty-pay-nodejs-sdk.git",
+   "efty-pay-nodejs-sdk": "1.0.0",
    "jsonwebtoken": "^9.0.2"
 }
 ```
