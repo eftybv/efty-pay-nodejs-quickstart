@@ -97,7 +97,7 @@ The magic link implements the Efty Pay OTP (One Time Password) process for secur
 
 #### Onboard a seller
 The below sample onboards a seller as legal user (company).
-```nodejs
+```js
 const grpc = require('@grpc/grpc-js');
 const {
     UsersClient,
@@ -257,7 +257,7 @@ The `GenerateMagicLink` method can be used to generate a magic link for the user
 
 The magic links use the Efty Pay OTP process & technology for secure access.
 
-```nodejs
+```js
 const grpc = require('@grpc/grpc-js');
 const { PaymentsClient, Id } = require('efty-pay-nodejs-sdk');
 const { generateToken } = require('./helpers');
@@ -308,7 +308,7 @@ Notes:
 - If a user already exists, creating a transaction will throw an error, instead you should pass in the user ID of the existing user.
 - To get the user details (including the ID) for an email or username, you can use the [Get User method](examples/get-user.js).
 
-```nodejs
+```js
 const grpc = require('@grpc/grpc-js');
 const {
     TransactionsClient,
@@ -436,7 +436,7 @@ Full examples:
 ### Get a user
 You can get a user by ID, email, or username. Below sample shows getting the user by ID and email.
 
-```nodejs
+```js
 const grpc = require('@grpc/grpc-js');
 const {
     UsersClient,
@@ -499,7 +499,73 @@ Full examples:
 ### List transactions
 You can list all transactions in your account, or you can list transactions with filter criteria. The below sample lists all transactions for a seller.
 
-```nodejs
+```js
+const grpc = require('@grpc/grpc-js');
+const {
+  TransactionsClient,
+  ListTransactionsRequest,
+} = require('efty-pay-nodejs-sdk');
+const {
+  ListRequest,
+  Query,
+  Condition,
+  ConditionOperator,
+  ComparisonOperator,
+} = require('efty-pay-nodejs-sdk');
+const { generateToken } = require('./helpers');
+require('dotenv').config();
+
+(async () => {
+  try {
+    const apiUrl = process.env.EFTY_PAY_API_URL;
+    const sellerId = '4VlIPczrBspb83omByVH32'; // Replace with actual seller ID
+
+    const metadata = new grpc.Metadata();
+    metadata.add('authorization', generateToken());
+
+    const transactionsClient = new TransactionsClient(apiUrl, grpc.credentials.createSsl());
+
+    // Build field condition
+    const condition = new Condition();
+    condition.setField('SellerId');
+    condition.setOperator(ComparisonOperator.COMPARISON_OPERATOR_EQUALS);
+    condition.setStringvalue(sellerId);
+
+    // Build query
+    const query = new Query();
+    query.setConditionoperator(ConditionOperator.CONDITION_OPERATOR_AND);
+    query.setFieldconditionsList([condition]);
+
+    // Build list request
+    const listRequest = new ListRequest();
+    listRequest.setLimit(25);
+    listRequest.setQueriesList([query]);
+
+    // Build final request
+    const transactionListRequest = new ListTransactionsRequest();
+    transactionListRequest.setReturnbuyerdata(true);
+    transactionListRequest.setReturnsellerdata(true);
+    transactionListRequest.setListrequest(listRequest);
+
+    // Stream the responses
+    const call = transactionsClient.listTransactions(transactionListRequest, metadata);
+
+    call.on('data', (transaction) => {
+      console.log(transaction.getId());
+    });
+
+    call.on('error', (err) => {
+      console.error('Error streaming transactions:', err.message);
+    });
+
+    call.on('end', () => {
+      console.log('Transaction stream complete.');
+    });
+
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+})();
 ```
 
 Full examples:
