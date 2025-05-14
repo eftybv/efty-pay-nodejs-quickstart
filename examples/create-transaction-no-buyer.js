@@ -6,7 +6,7 @@ const {
     DigitalAsset,
     AssetType,
     UtmParameters,
-    Currency,
+    Currency, TransactionParty,
 } = require('efty-pay-nodejs-sdk');
 const {
     User,
@@ -21,7 +21,7 @@ require('dotenv').config();
     try {
         const apiUrl = process.env.EFTY_PAY_API_URL;
         const randomString = generateRandomString(5);
-        const sellerUserId = '4VlIPczrBspb83omByVH32'; // Replace with actual user ID
+        const sellerUserId = '2uir3y2njUcCNR84nFi9Zq'; // Replace with actual user ID
 
         const metadata = new grpc.Metadata();
         metadata.add('authorization', generateToken());
@@ -55,6 +55,7 @@ require('dotenv').config();
         transaction.setUtmparameters(utmParams);
         transaction.setCurrency(Currency.USD);
         transaction.setAssetamountexcvat(100000); // $1,000.00
+        transaction.setInitiatedby(TransactionParty.BUYER);// 0.00
 
         const transactionRequest = new TransactionRequest();
         transactionRequest.setTransaction(transaction);

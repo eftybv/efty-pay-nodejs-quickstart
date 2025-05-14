@@ -406,8 +406,6 @@ require('dotenv').config();
 
         transaction.setCurrency(Currency.USD);
         transaction.setAssetamountexcvat(100000); // 1000.00 USD
-
-        // Optional: seller initiated
         transaction.setInitiatedby(TransactionParty.SELLER);
 
         const transactionRequest = new TransactionRequest();
