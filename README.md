@@ -10,7 +10,7 @@ This is a quickstart project for integrating with the Efty Pay Node.js SDK. It d
    - [Token Creation](#token-creation)
    - [Set Your API Credentials in Environment Variables](#set-your-api-credentials-in-your-environment-variables)
    - [Important Notes](#important-notes)
-- [MARKETPLACES & BIN BUTTONS: Create a new transaction (with no buyer)](#market-places--bin-buttons-create-a-new-transaction-with-no-buyer)
+- [MARKETPLACES & BIN BUTTONS: Create a new transaction (with no buyer)](#marketplaces--bin-buttons-create-a-new-transaction-with-no-buyer)
 - [Other examples](#other-examples)
    - [Generate Magic Link](#generate-magic-link)
    - [Create Transaction (with Known Seller & Buyer)](#create-transaction-with-known-seller--buyer)
@@ -146,7 +146,7 @@ require('dotenv').config();
     transaction.setUtmparameters(utmParams);
     transaction.setCurrency(Currency.USD);
     transaction.setAssetamountexcvat(100000); // $1,000.00
-    transaction.setInitiatedby(TransactionParty.BUYER);// 0.00
+    transaction.setInitiatedby(TransactionParty.BUYER);
 
     const transactionRequest = new TransactionRequest();
     transactionRequest.setTransaction(transaction);
