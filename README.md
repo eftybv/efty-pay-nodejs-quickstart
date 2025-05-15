@@ -10,13 +10,14 @@ This is a quickstart project for integrating with the Efty Pay Node.js SDK. It d
    - [Token Creation](#token-creation)
    - [Set Your API Credentials in Environment Variables](#set-your-api-credentials-in-your-environment-variables)
    - [Important Notes](#important-notes)
-- [Create & Onboard the Seller](#create--onboard-the-seller)
-   - [Onboard a Seller](#onboard-a-seller)
+- [MARKETPLACES & BIN BUTTONS: Create a new transaction (with no buyer)](#market-places--bin-buttons-create-a-new-transaction-with-no-buyer)
 - [Other examples](#other-examples)
    - [Generate Magic Link](#generate-magic-link)
    - [Create Transaction (with Known Seller & Buyer)](#create-transaction-with-known-seller--buyer)
    - [Get a user](#get-a-user)
    - [List transactions](#list-transactions)
+   - [Create & Onboard the Seller](#create--onboard-the-seller)
+     - [Onboard a Seller](#onboard-a-seller)
 - [Troubleshooting & support](#troubleshooting--support)
 - [License](#license)
 
@@ -71,7 +72,6 @@ export EFTY_PAY_API_URL=api.eftypay.com:443
 
 Now from the root folder (and after running `npm install` or `yarn install`) you can execute the desired example scripts:
 ```
-node create-legal-seller-user-and-intiate-onboarding-with-mangopay.js
 node create-transaction-new-seller-and-buyer.js
 node getTransaction.js
 ...
@@ -81,173 +81,93 @@ node getTransaction.js
 - __It's strongly recommended that you store your API credentials server side only, and if possible encrypted. Never expose or store these credentials in your code repository or front-end code.__
 - __If you think your API credentials have been leaked or compromised, please contact us immediately to invalidate your credentials.__
 
-### Create & onboard the seller
-In order for Efty Pay to process payments for a seller, and for a seller to receive payouts through Efty Pay, the seller needs to onboard with Efty Pay and go through our KYC process.
-This whole process is managed through the Efty Pay web interface, but does need to be initiated by the integrator by providing Efty Pay with basic data for the seller:
+## MARKETPLACES & BIN BUTTONS: Create a new transaction (with no buyer)
+Below code snippet is what would sit behind a BIN button on for example a Marketplace. This is the simplest way to create a transaction without needing to create a buyer user.
 
-- Legal status: personal or company seller.
-- Name & address details.
+This is the most common method used by Marketplaces that integrate Efty Pay behind their BIN buttons.
 
-Once you have completed this step, the seller will receive an email with a link to complete their onboarding.
+If you are a seller with a Marketplace, ensure you get your seller ID & Efty Pay credentials from the Efty Pay team, and then you should be good to go with the below sample!
 
-If you want to redirect the seller to the onboarding wizard from your application, you can generate a magic link for them to redirect them to.
-
-The magic link implements the Efty Pay OTP (One Time Password) process for secure access by the seller.
-
-#### Onboard a seller
-The below sample onboards a seller as legal user (company).
 ```js
 const grpc = require('@grpc/grpc-js');
 const {
-    UsersClient,
-    PaymentsClient,
-    User,
-    UserCategory,
-    Address,
-    VatSettings,
-    UserType,
-    UserStatus,
-    PaymentDetails,
-    MangopayDetails,
-    UserRequest,
-    Id,
-    MangopayOnboarding,
-    LegalUser,
-    Person,
-    LegalUserType,
-    OnboardingType,
-    OnboardingAddress,
-    CountryCode
+  TransactionsClient,
+  TransactionRequest,
+  Transaction,
+  DigitalAsset,
+  AssetType,
+  UtmParameters,
+  Currency, TransactionParty,
 } = require('efty-pay-nodejs-sdk');
-const { Timestamp } = require('google-protobuf/google/protobuf/timestamp_pb');
+const {
+  User,
+} = require('efty-pay-nodejs-sdk');
+const {
+  Domain,
+} = require('efty-pay-nodejs-sdk');
 const { generateToken, generateRandomString } = require('./helpers');
 require('dotenv').config();
 
 (async () => {
-    try {
-        // Get the API URL
-        const apiUrl = process.env.EFTY_PAY_API_URL;
+  try {
+    const apiUrl = process.env.EFTY_PAY_API_URL;
+    const randomString = generateRandomString(5);
+    const sellerUserId = '4VlIPczrBspb83omByVH32'; // Replace with actual user ID
 
-        // Random string to be used in the username & email
-        const randomString = generateRandomString(5);
+    const metadata = new grpc.Metadata();
+    metadata.add('authorization', generateToken());
 
-        const metadata = new grpc.Metadata();
-        metadata.add('authorization', generateToken());
+    const transactionsClient = new TransactionsClient(apiUrl, grpc.credentials.createSsl());
 
-        // Define the clients for the users & payments API
-        const usersClient = new UsersClient(apiUrl, grpc.credentials.createSsl());
-        const paymentsClient = new PaymentsClient(apiUrl, grpc.credentials.createSsl());
+    // Define the seller
+    const seller = new User();
+    seller.setId(sellerUserId);
 
-        // Define the seller with nested objects
-        const seller = new User();
-        seller.setFirstname('Patrick');
-        seller.setLastname('Kosterman');
-        seller.setUsername(`patrick-kosterman-seller-${randomString}`);
-        seller.setEmail(`patrick-kosterman-seller-${randomString}@efty.com`);
-        seller.setPassword('wasdfp-0wsdfe-mafdfrw');
-        seller.setCompanyregistrationnumber('87654321');
-        seller.setCompanyname('Efty Pay B.V.');
+    // Define domain asset
+    const domain = new Domain();
+    domain.setDomainname(`efty${randomString}.com`);
 
-        const companyAddress = new Address();
-        companyAddress.setAddressline1('Zuiderpark 17');
-        companyAddress.setPostalcode('9724 AG');
-        companyAddress.setCity('Groningen');
-        companyAddress.setCountry(CountryCode.NL);
-        seller.setCompanyaddress(companyAddress);
+    const digitalAsset = new DigitalAsset();
+    digitalAsset.setDomain(domain);
 
-        const vatSettings = new VatSettings();
-        vatSettings.setHasvat(true);
-        seller.setVatsettings(vatSettings);
+    // Define UTM parameters
+    const utmParams = new UtmParameters();
+    utmParams.setUtmsource('utm-source');
+    utmParams.setUtmcampaign('utm-campaign');
+    utmParams.setUtmterm('utm-term');
+    utmParams.setUtmcontent('utm-content');
+    utmParams.setUtmmedium('utm-medium');
 
-        seller.setUsertype(UserType.BUYER_OR_SELLER);
-        seller.setStatus(UserStatus.ACTIVE);
-        seller.setPhonenumber('+34615504467');
+    // Build transaction
+    const transaction = new Transaction();
+    transaction.setSeller(seller);
+    transaction.setAssettype(AssetType.DOMAIN_NAME);
+    transaction.setDigitalasset(digitalAsset);
+    transaction.setUtmparameters(utmParams);
+    transaction.setCurrency(Currency.USD);
+    transaction.setAssetamountexcvat(100000); // $1,000.00
+    transaction.setInitiatedby(TransactionParty.BUYER);// 0.00
 
-        const mangopayDetails = new MangopayDetails();
-        mangopayDetails.setOnboardassellerwithmangopay(true);
-        mangopayDetails.setUsercategory(UserCategory.OWNER);
+    const transactionRequest = new TransactionRequest();
+    transactionRequest.setTransaction(transaction);
 
-        const paymentDetails = new PaymentDetails();
-        paymentDetails.setMangopaydetails(mangopayDetails);
-        seller.setPaymentdetails(paymentDetails);
+    // Create transaction
+    const newTransaction = await new Promise((resolve, reject) => {
+      transactionsClient.createTransaction(transactionRequest, metadata, (err, response) => {
+        if (err) return reject(err);
+        resolve(response);
+      });
+    });
 
-        // Create the user request
-        const userRequest = new UserRequest();
-        userRequest.setUser(seller);
-
-        // Create the user
-        const userResponse = await new Promise((resolve, reject) => {
-            usersClient.createUser(userRequest, metadata, (err, response) => {
-                if (err) return reject(err);
-                resolve(response);
-            });
-        });
-
-        console.log('New seller user created:', userResponse.getId());
-
-        // Create the onboarding object
-        const dateOfBirth = new Date('1982-03-21');
-        const timestamp = new Timestamp();
-        timestamp.fromDate(dateOfBirth);
-
-        const legalRepresentative = new Person();
-        legalRepresentative.setFirstname(userResponse.getFirstname());
-        legalRepresentative.setLastname(userResponse.getLastname());
-        legalRepresentative.setEmail(userResponse.getEmail());
-        legalRepresentative.setDateofbirth(timestamp);
-        legalRepresentative.setNationality(CountryCode.NL);
-        legalRepresentative.setCountryofresidence(CountryCode.NL);
-
-        const legalUser = new LegalUser();
-        legalUser.setRegisteredname(userResponse.getCompanyname());
-        legalUser.setCompanynumber(userResponse.getCompanyregistrationnumber());
-        legalUser.setEmail(userResponse.getEmail());
-
-        const companyOnboardingAddress = new OnboardingAddress();
-        companyOnboardingAddress.setAddressline1('Zuiderpark 17');
-        companyOnboardingAddress.setPostalcode('9724 AG');
-        companyOnboardingAddress.setCity('Groningen');
-        companyOnboardingAddress.setCountry(CountryCode.NL);
-
-        legalUser.setRegisteredaddress(companyOnboardingAddress);
-        legalUser.setLegalrepresentative(legalRepresentative);
-        legalUser.setLegalusertype(LegalUserType.BUSINESS);
-        legalUser.setVatnumber('abc123');
-
-        const mangopayOnboardingRequest = new MangopayOnboarding();
-        const sellerId = new Id();
-        sellerId.setId(userResponse.getId());
-        mangopayOnboardingRequest.setSelleruserid(sellerId);
-        mangopayOnboardingRequest.setLegaluser(legalUser);
-        mangopayOnboardingRequest.setOnboardingtype(OnboardingType.LEGAL_USER);
-
-        // Onboard the user
-        const onboardingResponse = await new Promise((resolve, reject) => {
-            paymentsClient.createSellerOnboardingForMangopay(mangopayOnboardingRequest, metadata, (err, response) => {
-                if (err) return reject(err);
-                resolve(response);
-            });
-        });
-
-        console.log('New seller onboarding successfully initiated for user:', onboardingResponse.getSelleruserid().getId());
-
-        const magicLinkResponse = await new Promise((resolve, reject) => {
-            paymentsClient.getGenericMagicLink(sellerId, metadata, (err, response) => {
-                if (err) return reject(err);
-                resolve(response);
-            });
-        });
-
-        console.log('Magic link:', magicLinkResponse.getValue());
-    } catch (error) {
-        console.error('Error:', error.message);
-    }
+    console.log('New transaction created:', newTransaction.getId());
+    console.log('Transaction checkout URL:', newTransaction.getCheckoutdetails().getCheckouturl());
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
 })();
-```
+````
 
-Full examples:
-- Onboard natural-person seller (individual): [examples/create-individual-seller-user-and-intiate-onboarding-with-mangopay.js](./examples/create-individual-seller-user-and-intiate-onboarding-with-mangopay.js).
-- Onboard legal-user seller (company): [examples/create-legal-seller-user-and-intiate-onboarding-with-mangopay.js](./examples/create-legal-seller-user-and-intiate-onboarding-with-mangopay.js).
+Once you run the sample, you can redirect your buyers to the checkout URL.
 
 ## Other examples
 
@@ -568,6 +488,174 @@ require('dotenv').config();
 Full examples:
 - List transactions for seller: [examples/list-transactions-for-seller.js](./examples/list-transactions-for-seller.js).
 - List transactions for buyer: [examples/list-transactions-for-buyer.js](./examples/list-transactions-for-buyer.js).
+
+### Create & onboard the seller
+In order for Efty Pay to process payments for a seller, and for a seller to receive payouts through Efty Pay, the seller needs to onboard with Efty Pay and go through our KYC process.
+This whole process is managed through the Efty Pay web interface, but does need to be initiated by the integrator by providing Efty Pay with basic data for the seller:
+
+- Legal status: personal or company seller.
+- Name & address details.
+
+Once you have completed this step, the seller will receive an email with a link to complete their onboarding.
+
+If you want to redirect the seller to the onboarding wizard from your application, you can generate a magic link for them to redirect them to.
+
+The magic link implements the Efty Pay OTP (One Time Password) process for secure access by the seller.
+
+#### Onboard a seller
+The below sample onboards a seller as legal user (company).
+```js
+const grpc = require('@grpc/grpc-js');
+const {
+    UsersClient,
+    PaymentsClient,
+    User,
+    UserCategory,
+    Address,
+    VatSettings,
+    UserType,
+    UserStatus,
+    PaymentDetails,
+    MangopayDetails,
+    UserRequest,
+    Id,
+    MangopayOnboarding,
+    LegalUser,
+    Person,
+    LegalUserType,
+    OnboardingType,
+    OnboardingAddress,
+    CountryCode
+} = require('efty-pay-nodejs-sdk');
+const { Timestamp } = require('google-protobuf/google/protobuf/timestamp_pb');
+const { generateToken, generateRandomString } = require('./helpers');
+require('dotenv').config();
+
+(async () => {
+    try {
+        // Get the API URL
+        const apiUrl = process.env.EFTY_PAY_API_URL;
+
+        // Random string to be used in the username & email
+        const randomString = generateRandomString(5);
+
+        const metadata = new grpc.Metadata();
+        metadata.add('authorization', generateToken());
+
+        // Define the clients for the users & payments API
+        const usersClient = new UsersClient(apiUrl, grpc.credentials.createSsl());
+        const paymentsClient = new PaymentsClient(apiUrl, grpc.credentials.createSsl());
+
+        // Define the seller with nested objects
+        const seller = new User();
+        seller.setFirstname('Patrick');
+        seller.setLastname('Kosterman');
+        seller.setUsername(`patrick-kosterman-seller-${randomString}`);
+        seller.setEmail(`patrick-kosterman-seller-${randomString}@efty.com`);
+        seller.setPassword('wasdfp-0wsdfe-mafdfrw');
+        seller.setCompanyregistrationnumber('87654321');
+        seller.setCompanyname('Efty Pay B.V.');
+
+        const companyAddress = new Address();
+        companyAddress.setAddressline1('Zuiderpark 17');
+        companyAddress.setPostalcode('9724 AG');
+        companyAddress.setCity('Groningen');
+        companyAddress.setCountry(CountryCode.NL);
+        seller.setCompanyaddress(companyAddress);
+
+        const vatSettings = new VatSettings();
+        vatSettings.setHasvat(true);
+        seller.setVatsettings(vatSettings);
+
+        seller.setUsertype(UserType.BUYER_OR_SELLER);
+        seller.setStatus(UserStatus.ACTIVE);
+        seller.setPhonenumber('+34615504467');
+
+        const mangopayDetails = new MangopayDetails();
+        mangopayDetails.setOnboardassellerwithmangopay(true);
+        mangopayDetails.setUsercategory(UserCategory.OWNER);
+
+        const paymentDetails = new PaymentDetails();
+        paymentDetails.setMangopaydetails(mangopayDetails);
+        seller.setPaymentdetails(paymentDetails);
+
+        // Create the user request
+        const userRequest = new UserRequest();
+        userRequest.setUser(seller);
+
+        // Create the user
+        const userResponse = await new Promise((resolve, reject) => {
+            usersClient.createUser(userRequest, metadata, (err, response) => {
+                if (err) return reject(err);
+                resolve(response);
+            });
+        });
+
+        console.log('New seller user created:', userResponse.getId());
+
+        // Create the onboarding object
+        const dateOfBirth = new Date('1982-03-21');
+        const timestamp = new Timestamp();
+        timestamp.fromDate(dateOfBirth);
+
+        const legalRepresentative = new Person();
+        legalRepresentative.setFirstname(userResponse.getFirstname());
+        legalRepresentative.setLastname(userResponse.getLastname());
+        legalRepresentative.setEmail(userResponse.getEmail());
+        legalRepresentative.setDateofbirth(timestamp);
+        legalRepresentative.setNationality(CountryCode.NL);
+        legalRepresentative.setCountryofresidence(CountryCode.NL);
+
+        const legalUser = new LegalUser();
+        legalUser.setRegisteredname(userResponse.getCompanyname());
+        legalUser.setCompanynumber(userResponse.getCompanyregistrationnumber());
+        legalUser.setEmail(userResponse.getEmail());
+
+        const companyOnboardingAddress = new OnboardingAddress();
+        companyOnboardingAddress.setAddressline1('Zuiderpark 17');
+        companyOnboardingAddress.setPostalcode('9724 AG');
+        companyOnboardingAddress.setCity('Groningen');
+        companyOnboardingAddress.setCountry(CountryCode.NL);
+
+        legalUser.setRegisteredaddress(companyOnboardingAddress);
+        legalUser.setLegalrepresentative(legalRepresentative);
+        legalUser.setLegalusertype(LegalUserType.BUSINESS);
+        legalUser.setVatnumber('abc123');
+
+        const mangopayOnboardingRequest = new MangopayOnboarding();
+        const sellerId = new Id();
+        sellerId.setId(userResponse.getId());
+        mangopayOnboardingRequest.setSelleruserid(sellerId);
+        mangopayOnboardingRequest.setLegaluser(legalUser);
+        mangopayOnboardingRequest.setOnboardingtype(OnboardingType.LEGAL_USER);
+
+        // Onboard the user
+        const onboardingResponse = await new Promise((resolve, reject) => {
+            paymentsClient.createSellerOnboardingForMangopay(mangopayOnboardingRequest, metadata, (err, response) => {
+                if (err) return reject(err);
+                resolve(response);
+            });
+        });
+
+        console.log('New seller onboarding successfully initiated for user:', onboardingResponse.getSelleruserid().getId());
+
+        const magicLinkResponse = await new Promise((resolve, reject) => {
+            paymentsClient.getGenericMagicLink(sellerId, metadata, (err, response) => {
+                if (err) return reject(err);
+                resolve(response);
+            });
+        });
+
+        console.log('Magic link:', magicLinkResponse.getValue());
+    } catch (error) {
+        console.error('Error:', error.message);
+    }
+})();
+```
+
+Full examples:
+- Onboard natural-person seller (individual): [examples/create-individual-seller-user-and-intiate-onboarding-with-mangopay.js](./examples/create-individual-seller-user-and-intiate-onboarding-with-mangopay.js).
+- Onboard legal-user seller (company): [examples/create-legal-seller-user-and-intiate-onboarding-with-mangopay.js](./examples/create-legal-seller-user-and-intiate-onboarding-with-mangopay.js).
 
 ## Troubleshooting & support
 If you run into any other issues, contact us at [api@efty.com](api@efty.com).
